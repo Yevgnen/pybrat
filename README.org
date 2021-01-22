@@ -1,0 +1,5 @@
+#+title: Pybrat
+
+* Introduction
+
+~pybrat~ is a reader/parser for reading/parsing data annotated by [[https://brat.nlplab.org/index.html][brat]].
