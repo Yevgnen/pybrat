@@ -18,6 +18,12 @@ git clone https://github.com/nlplab/brat.git
 
 #+include: examples/example.py src python
 
+* Contribution
+
+** Formatting Code
+
+To ensure the codebase complies with a style guide, please use [[https://github.com/PyCQA/flake8][flake8]], [[https://github.com/psf/black][black]] and [[https://github.com/PyCQA/isort][isort]] tools to format and check codebase for compliance with PEP8.
+
 # Local Variables:
 # eval: (add-hook 'before-save-hook (lambda nil (org-pandoc-export-to-gfm)) nil t)
 # End:
