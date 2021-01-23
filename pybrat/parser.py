@@ -4,12 +4,12 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import FrozenSet, Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 from pybrat.utils import iter_file_groups
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Reference(object):
     rid: str
     eid: str
@@ -17,17 +17,17 @@ class Reference(object):
     id: Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Entity(object):
     mention: str
     type: str
     start: int
     end: int
-    references: FrozenSet[Reference] = dataclasses.field(default_factory=frozenset)
+    references: List[Reference] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Relation(object):
     type: str
     arg1: Entity
@@ -35,25 +35,25 @@ class Relation(object):
     id: Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Event(object):
-    @dataclasses.dataclass(frozen=True)
+    @dataclasses.dataclass
     class Argument(object):
         rule: str
         entity: Entity
 
     type: str
     trigger: Entity
-    arguments: FrozenSet[Argument] = dataclasses.field(default_factory=frozenset)
+    arguments: List[Argument] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Example(object):
     text: Union[str, Iterable[str]]
-    entities: FrozenSet[Entity] = dataclasses.field(default_factory=frozenset)
-    relations: FrozenSet[Relation] = dataclasses.field(default_factory=frozenset)
-    events: FrozenSet[Event] = dataclasses.field(default_factory=frozenset)
+    entities: List[Entity] = dataclasses.field(default_factory=list)
+    relations: List[Relation] = dataclasses.field(default_factory=list)
+    events: List[Event] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
 
 
@@ -203,14 +203,14 @@ class BratParser(object):
                 type=match["type"],
                 start=int(match["start"]),
                 end=int(match["end"]),
-                references=frozenset(references[match["id"]]),
+                references=references[match["id"]],
                 id=match["id"],
             )
             for match in entity_matches
         }
 
         # Parse relations.
-        relations = set()
+        relations = []
         for rel in relation_matches:
             arg1_id, arg2_id = rel["arg1"], rel["arg2"]
             arg1 = entities.get(arg1_id)
@@ -222,9 +222,9 @@ class BratParser(object):
                     )
                 )
 
-            relations.add(
+            relations += [
                 Relation(type=rel["type"], arg1=arg1, arg2=arg2, id=rel["id"])
-            )
+            ]
 
         # Parser events.
         adjacent = {
@@ -250,7 +250,7 @@ class BratParser(object):
         event_index = dict(zip(sorted_event_ids, range(len(sorted_event_ids))))
 
         events = dict()
-        arguments = set()
+        arguments = []
         for match in sorted(event_matches, key=lambda x: event_index[x["id"]]):
             trigger = entities.get(match["trigger"])
             if not trigger:
@@ -266,20 +266,17 @@ class BratParser(object):
                 else:
                     self._raise(RuntimeError(f'Unknown event arg: {arg["id"]}'))
 
-                arguments.add(arg_object)
+                arguments += [arg_object]
 
             event = Event(
-                type=match["type"],
-                trigger=trigger,
-                arguments=frozenset(arguments),
-                id=match["id"],
+                type=match["type"], trigger=trigger, arguments=arguments, id=match["id"]
             )
             events[event.id] = event
 
         return {
-            "entities": frozenset(entities.values()),
-            "relations": frozenset(relations),
-            "events": frozenset(events.values()),
+            "entities": list(entities.values()),
+            "relations": relations,
+            "events": list(events.values()),
         }
 
     def _parse_text(self, txt):  # pylint: disable=no-self-use
