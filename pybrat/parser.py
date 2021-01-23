@@ -9,18 +9,18 @@ from pybrat.utils import iter_file_groups
 
 @dataclasses.dataclass(frozen=True)
 class Entity(object):
-    token: str
-    tag: str
+    mention: str
+    type: str
     start: int
     end: int
     id: Optional[str] = None
 
 
 @dataclasses.dataclass(frozen=True)
-class Relationship(object):
-    relationship: str
-    head: Entity
-    tail: Entity
+class Relation(object):
+    relation: str
+    arg1: Entity
+    arg2: Entity
     id: Optional[str] = None
 
 
@@ -28,7 +28,7 @@ class Relationship(object):
 class Example(object):
     text: Union[str, Iterable[str]]
     entities: dataclasses.field(default_factory=set)
-    relationships: dataclasses.field(default_factory=set)
+    relations: dataclasses.field(default_factory=set)
     id: Optional[str] = None
 
 
@@ -49,10 +49,10 @@ class BratParser(object):
     def _parse_entity(self, line):
         regex = re.compile(
             r"""(?P<id>T\d+)
-                \t(?P<tag>[^ ]+)
+                \t(?P<type>[^ ]+)
                 \ (?P<start>\d+)
                 \ (?P<end>\d+)
-                \t(?P<token>.+)""",
+                \t(?P<mention>.+)""",
             re.X,
         )
         match = re.match(regex, line)
@@ -61,12 +61,12 @@ class BratParser(object):
 
         return match.group
 
-    def _parse_relationship(self, line):
+    def _parse_relation(self, line):
         regex = re.compile(
             r"""(?P<id>R\d+)
-                \t(?P<relationship>[^ ]+)
-                \ Arg[12]:(?P<head>T\d+)
-                \ Arg[12]:(?P<tail>T\d+)""",
+                \t(?P<relation>[^ ]+)
+                \ Arg[12]:(?P<arg1>T\d+)
+                \ Arg[12]:(?P<arg2>T\d+)""",
             re.X,
         )
         match = re.match(regex, line)
@@ -77,7 +77,7 @@ class BratParser(object):
 
     def _parse_ann(self, ann):
         entities = {}
-        relationship_matches = []
+        relation_matches = []
         with open(ann, mode="r") as f:
             for line in f:
                 line = line.rstrip()
@@ -87,36 +87,34 @@ class BratParser(object):
                 if line.startswith("T"):
                     match = self._parse_entity(line)
                     entities[match("id")] = Entity(
-                        token=match("token"),
-                        tag=match("tag"),
+                        mention=match("mention"),
+                        type=match("type"),
                         start=int(match("start")),
                         end=int(match("end")),
                         id=match("id"),
                     )
                 elif line.startswith("R"):
-                    match = self._parse_relationship(line)
-                    relationship_matches += [match]
+                    match = self._parse_relation(line)
+                    relation_matches += [match]
                 else:
                     self._raise_invalid_line_error(line)
 
-        relationships = set()
-        for rel in relationship_matches:
-            head_id, tail_id = rel("head"), rel("tail")
-            head = entities.get(head_id)
-            tail = entities.get(tail_id)
-            if not head or not tail:
+        relations = set()
+        for rel in relation_matches:
+            arg1_id, arg2_id = rel("arg1"), rel("arg2")
+            arg1 = entities.get(arg1_id)
+            arg2 = entities.get(arg2_id)
+            if not arg1 or not arg2:
                 self._raise(
-                    KeyError(f"Missing entity: {head_id if not head else tail_id}")
+                    KeyError(f"Missing entity: {arg1_id if not arg1 else arg2_id}")
                 )
 
-            relationships.add(
-                Relationship(
-                    relationship=rel("relationship"), head=head, tail=tail, id=rel("id")
-                )
+            relations.add(
+                Relation(relation=rel("relation"), arg1=arg1, arg2=arg2, id=rel("id"))
             )
         entities = set(entities.values())
 
-        return {"entities": entities, "relationships": relationships}
+        return {"entities": entities, "relations": relations}
 
     def _parse_text(self, txt):  # pylint: disable=no-self-use
         with open(txt, mode="r") as f:
