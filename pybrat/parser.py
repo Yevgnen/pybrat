@@ -49,7 +49,9 @@ class Example(object):
 
 
 class BratParser(object):
-    def __init__(self, error: str = "raise"):
+    def __init__(self, ignore_types: str = "AMN", error: str = "raise"):
+        # TODO Remove `ignore_types` and add full support.
+        self.ignore_types = ignore_types
         self.error = error
         self.exts = {".ann", ".txt"}
 
@@ -163,7 +165,8 @@ class BratParser(object):
                     match = self._parse_event(line)
                     event_matches += [match]
                 else:
-                    self._raise_invalid_line_error(line)
+                    if line[0] not in self.ignore_types:
+                        self._raise_invalid_line_error(line)
 
         # Parse relations.
         relations = set()
