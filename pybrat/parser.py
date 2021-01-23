@@ -3,7 +3,7 @@
 import dataclasses
 import itertools
 import re
-from typing import Iterable, List, Optional, Set, Union
+from typing import FrozenSet, Iterable, List, Optional, Union
 
 from pybrat.utils import iter_file_groups
 
@@ -26,10 +26,24 @@ class Relation(object):
 
 
 @dataclasses.dataclass(frozen=True)
+class Event(object):
+    @dataclasses.dataclass(frozen=True)
+    class Argument(object):
+        rule: str
+        entity: Entity
+
+    type: str
+    trigger: Entity
+    arguments: FrozenSet[Argument] = dataclasses.field(default_factory=frozenset)
+    id: Optional[str] = None
+
+
+@dataclasses.dataclass(frozen=True)
 class Example(object):
     text: Union[str, Iterable[str]]
-    entities: Set[Entity] = dataclasses.field(default_factory=set)
-    relations: Set[Relation] = dataclasses.field(default_factory=set)
+    entities: FrozenSet[Entity] = dataclasses.field(default_factory=frozenset)
+    relations: FrozenSet[Relation] = dataclasses.field(default_factory=frozenset)
+    events: FrozenSet[Event] = dataclasses.field(default_factory=frozenset)
     id: Optional[str] = None
 
 
@@ -89,9 +103,32 @@ class BratParser(object):
             for arg1, arg2 in itertools.combinations(entities, 2)
         )
 
+    def _parse_event(self, line):
+        regex = re.compile(
+            r"""(?P<id>E\d+)
+                \t(?P<type>[^:]+):(?P<trigger>T\d+)
+                (?P<args>(?:\ [^:]+:T\d+)+)""",
+            re.X,
+        )
+        match = re.match(regex, line)
+        if not match:
+            self._raise_invalid_line_error(line)
+
+        args = [x.split(":") for x in match["args"].strip().split()]
+
+        return {
+            "id": match["id"],
+            "type": match["type"],
+            "trigger": match["trigger"],
+            "args": [{"role": x[0], "entity": x[1]} for x in args],
+        }
+
     def _parse_ann(self, ann):
+        # Parser entities and store required data for parsing relations
+        # and events.
         entities = {}
         relation_matches = []
+        event_matches = []
         with open(ann, mode="r") as f:
             for line in f:
                 line = line.rstrip()
@@ -113,9 +150,13 @@ class BratParser(object):
                 elif line.startswith("*"):
                     match = self._parse_equivalence_relations(line)
                     relation_matches += list(match)
+                elif line.startswith("E"):
+                    match = self._parse_event(line)
+                    event_matches += [match]
                 else:
                     self._raise_invalid_line_error(line)
 
+        # Parse relations.
         relations = set()
         for rel in relation_matches:
             arg1_id, arg2_id = rel["arg1"], rel["arg2"]
@@ -123,15 +164,41 @@ class BratParser(object):
             arg2 = entities.get(arg2_id)
             if not arg1 or not arg2:
                 self._raise(
-                    KeyError(f"Missing entity: {arg1_id if not arg1 else arg2_id}")
+                    KeyError(
+                        f"Missing relation arg: {arg1_id if not arg1 else arg2_id}"
+                    )
                 )
 
             relations.add(
                 Relation(type=rel["type"], arg1=arg1, arg2=arg2, id=rel["id"])
             )
-        entities = set(entities.values())
 
-        return {"entities": entities, "relations": relations}
+        # Parser events.
+        events = set()
+        arguments = set()
+        for match in event_matches:
+            trigger = entities.get(match["trigger"])
+            if not trigger:
+                self._raise(KeyError(f"Missing event trigger: {trigger}"))
+
+            for arg in match["args"]:
+                arg_entity = entities.get(arg["entity"])
+                if not arg_entity:
+                    self._raise(KeyError(f'Missing event arg: {arg["id"]}'))
+                arguments.add(arg_entity)
+            event = Event(
+                type=match["type"],
+                trigger=trigger,
+                arguments=frozenset(arguments),
+                id=match["id"],
+            )
+            events.add(event)
+
+        return {
+            "entities": frozenset(entities.values()),
+            "relations": frozenset(relations),
+            "events": frozenset(events),
+        }
 
     def _parse_text(self, txt):  # pylint: disable=no-self-use
         with open(txt, mode="r") as f:
