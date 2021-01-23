@@ -3,3 +3,17 @@
 * Introduction
 
 ~pybrat~ is a reader/parser for reading/parsing data annotated by [[https://brat.nlplab.org/index.html][brat]].
+
+* Usages
+
+** Fetch sample data
+
+#+begin_src sh
+git clone https://github.com/nlplab/brat.git
+#+end_src
+
+#+results:
+
+** Use ~pybrat~ to parse annotated data
+
+#+include: examples/example.py src python
