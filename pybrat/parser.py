@@ -234,7 +234,6 @@ class BratParser(object):
                 id=match["id"],
             )
             events[event.id] = event
-        assert len(events) == len(event_matches)
 
         return {
             "entities": frozenset(entities.values()),
