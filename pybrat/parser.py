@@ -49,9 +49,7 @@ class Example(object):
 
 
 class BratParser(object):
-    def __init__(self, seps: str = "。", ignores: str = "\n 　", error: str = "raise"):
-        self.seps = set(seps)
-        self.ignores = set(ignores)
+    def __init__(self, error: str = "raise"):
         self.error = error
         self.exts = {".ann", ".txt"}
 
