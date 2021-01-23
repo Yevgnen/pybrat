@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import dataclasses
 import itertools
 import re
@@ -107,20 +108,30 @@ class BratParser(object):
         regex = re.compile(
             r"""(?P<id>E\d+)
                 \t(?P<type>[^:]+):(?P<trigger>T\d+)
-                (?P<args>(?:\ [^:]+:T\d+)+)""",
+                (?P<args>(?:\ [^:]+:[TE]\d+)+)?""",  # argument could be entity or event
             re.X,
         )
         match = re.match(regex, line)
         if not match:
             self._raise_invalid_line_error(line)
 
-        args = [x.split(":") for x in match["args"].strip().split()]
+        if not match["args"]:
+            args = []
+        else:
+            args = [x.split(":") for x in match["args"].strip().split()]
 
         return {
             "id": match["id"],
             "type": match["type"],
             "trigger": match["trigger"],
-            "args": [{"role": x[0], "entity": x[1]} for x in args],
+            "args": [
+                {
+                    "role": x[0],
+                    "id": x[1],
+                    "type": "entity" if x[1].startswith("T") else "event",
+                }
+                for x in args
+            ],
         }
 
     def _parse_ann(self, ann):
@@ -174,30 +185,60 @@ class BratParser(object):
             )
 
         # Parser events.
-        events = set()
+        adjacent = {
+            e["id"]: [x["id"] for x in e["args"] if x["type"] == "event"]
+            for e in event_matches
+        }
+        sorted_event_ids = collections.OrderedDict()
+        while adjacent:
+            adjacent = sorted(adjacent.items(), key=lambda x: len(x[1]))
+            for node, neighbors in adjacent:
+                if neighbors:
+                    break
+
+                sorted_event_ids[node] = None
+
+            updated_adjacent = {}
+            for node, neighbors in adjacent:
+                if node not in sorted_event_ids:
+                    updated_adjacent[node] = [
+                        x for x in neighbors if x not in sorted_event_ids
+                    ]
+            adjacent = updated_adjacent
+        event_index = dict(zip(sorted_event_ids, range(len(sorted_event_ids))))
+
+        events = dict()
         arguments = set()
-        for match in event_matches:
+        for match in sorted(event_matches, key=lambda x: event_index[x["id"]]):
             trigger = entities.get(match["trigger"])
             if not trigger:
                 self._raise(KeyError(f"Missing event trigger: {trigger}"))
 
             for arg in match["args"]:
-                arg_entity = entities.get(arg["entity"])
-                if not arg_entity:
-                    self._raise(KeyError(f'Missing event arg: {arg["id"]}'))
-                arguments.add(arg_entity)
+                if arg["type"] == "entity":
+                    arg_object = entities.get(arg["id"])
+                elif arg["type"] == "event":
+                    arg_object = events.get(arg["id"])
+                    if not arg_object:
+                        self._raise(KeyError(f'Missing event arg: {arg["id"]}'))
+                else:
+                    self._raise(RuntimeError(f'Unknown event arg: {arg["id"]}'))
+
+                arguments.add(arg_object)
+
             event = Event(
                 type=match["type"],
                 trigger=trigger,
                 arguments=frozenset(arguments),
                 id=match["id"],
             )
-            events.add(event)
+            events[event.id] = event
+        assert len(events) == len(event_matches)
 
         return {
             "entities": frozenset(entities.values()),
             "relations": frozenset(relations),
-            "events": frozenset(events),
+            "events": frozenset(events.values()),
         }
 
     def _parse_text(self, txt):  # pylint: disable=no-self-use
