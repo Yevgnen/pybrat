@@ -1,8 +1,33 @@
 #+title: Pybrat
 
+* Table of Contents :TOC:
+- [[#introduction][Introduction]]
+- [[#installation][Installation]]
+  - [[#from-pip][From pip]]
+  - [[#from-source][From source]]
+- [[#usages][Usages]]
+  - [[#fetch-sample-data][Fetch sample data]]
+  - [[#parse-annotated-data][Parse annotated data]]
+- [[#contribution][Contribution]]
+  - [[#formatting-code][Formatting Code]]
+
 * Introduction
 
 ~pybrat~ is a reader/parser for reading/parsing data annotated by [[https://brat.nlplab.org/index.html][brat]].
+
+* Installation
+
+** From pip
+
+#+begin_src sh
+pip install pybrat
+#+end_src
+
+** From source
+
+#+begin_src sh
+pip install git+https://github.com/Yevgnen/pybrat
+#+end_src
 
 * Usages
 
