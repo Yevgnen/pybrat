@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import dataclasses
+import itertools
 import re
 from typing import Iterable, List, Optional, Union
 
@@ -18,7 +19,7 @@ class Entity(object):
 
 @dataclasses.dataclass(frozen=True)
 class Relation(object):
-    relation: str
+    type: str
     arg1: Entity
     arg2: Entity
     id: Optional[str] = None
@@ -59,12 +60,12 @@ class BratParser(object):
         if not match:
             self._raise_invalid_line_error(line)
 
-        return match.group
+        return match
 
     def _parse_relation(self, line):
         regex = re.compile(
             r"""(?P<id>R\d+)
-                \t(?P<relation>[^ ]+)
+                \t(?P<type>[^ ]+)
                 \ Arg[12]:(?P<arg1>T\d+)
                 \ Arg[12]:(?P<arg2>T\d+)""",
             re.X,
@@ -73,7 +74,20 @@ class BratParser(object):
         if not match:
             self._raise_invalid_line_error(line)
 
-        return match.group
+        return match
+
+    def _parse_equivalence_relations(self, line):
+        regex = re.compile(r"\*\tEquiv((?: T\d+)+)")
+        match = re.match(regex, line)
+        if not match:
+            self._raise_invalid_line_error(line)
+
+        entities = match.group(1).strip().split()
+
+        return (
+            {"type": "Equiv", "arg1": arg1, "arg2": arg2, "id": f"Equiv:{arg1}-{arg2}"}
+            for arg1, arg2 in itertools.combinations(entities, 2)
+        )
 
     def _parse_ann(self, ann):
         entities = {}
@@ -86,22 +100,25 @@ class BratParser(object):
 
                 if line.startswith("T"):
                     match = self._parse_entity(line)
-                    entities[match("id")] = Entity(
-                        mention=match("mention"),
-                        type=match("type"),
-                        start=int(match("start")),
-                        end=int(match("end")),
-                        id=match("id"),
+                    entities[match["id"]] = Entity(
+                        mention=match["mention"],
+                        type=match["type"],
+                        start=int(match["start"]),
+                        end=int(match["end"]),
+                        id=match["id"],
                     )
                 elif line.startswith("R"):
                     match = self._parse_relation(line)
                     relation_matches += [match]
+                elif line.startswith("*"):
+                    match = self._parse_equivalence_relations(line)
+                    relation_matches += list(match)
                 else:
                     self._raise_invalid_line_error(line)
 
         relations = set()
         for rel in relation_matches:
-            arg1_id, arg2_id = rel("arg1"), rel("arg2")
+            arg1_id, arg2_id = rel["arg1"], rel["arg2"]
             arg1 = entities.get(arg1_id)
             arg2 = entities.get(arg2_id)
             if not arg1 or not arg2:
@@ -110,7 +127,7 @@ class BratParser(object):
                 )
 
             relations.add(
-                Relation(relation=rel("relation"), arg1=arg1, arg2=arg2, id=rel("id"))
+                Relation(type=rel["type"], arg1=arg1, arg2=arg2, id=rel["id"])
             )
         entities = set(entities.values())
 
