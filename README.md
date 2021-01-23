@@ -58,7 +58,7 @@ assert all(isinstance(e, Relation) for x in examples for e in x.relations)
 assert all(isinstance(e, Event) for x in examples for e in x.events)
 
 id_ = "BioNLP-ST_2011_EPI/PMID-19377285"
-example = next(x for x in examples if x.id == "BioNLP-ST_2011_EPI/PMID-19377285")
+example = next(x for x in examples if x.id == id_)
 print(example.text)
 print(len(example.entities), next(iter(example.entities)))
 print(len(example.relations), next(iter(example.relations)))
