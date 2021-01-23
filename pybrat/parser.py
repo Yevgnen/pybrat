@@ -141,7 +141,7 @@ class BratParser(object):
         with open(ann, mode="r") as f:
             for line in f:
                 line = line.rstrip()
-                if not line:
+                if not line or line.startswith("#"):
                     continue
 
                 if line.startswith("T"):
