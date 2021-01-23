@@ -1,4 +1,5 @@
 #+title: Pybrat
+#+options: ^:nil
 
 * Table of Contents :TOC:
 - [[#introduction][Introduction]]
@@ -40,6 +41,8 @@ git clone https://github.com/nlplab/brat.git
 #+results:
 
 ** Parse annotated data
+
+Below is an [[/Users/Maximin/git/pybrat/examples/example.py][example]] of parsing [[https://github.com/nlplab/brat/tree/master/example-data/corpora/BioNLP-ST_2011][BioNLP-ST_2011]] data:
 
 #+include: examples/example.py src python
 
