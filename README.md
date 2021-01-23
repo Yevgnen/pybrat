@@ -12,8 +12,7 @@
 
 # Introduction
 
-`pybrat` is a reader/parser for reading/parsing data annotated by
-[brat](https://brat.nlplab.org/index.html).
+`pybrat` is a reader/parser for reading/parsing data annotated by [brat](https://brat.nlplab.org/index.html).
 
 # Installation
 
@@ -39,10 +38,7 @@ git clone https://github.com/nlplab/brat.git
 
 ## Parse annotated data
 
-Below is an [example](/Users/Maximin/git/pybrat/examples/example.py) of
-parsing
-[BioNLP-ST\_2011](https://github.com/nlplab/brat/tree/master/example-data/corpora/BioNLP-ST_2011)
-data:
+Below is an [example](/Users/Maximin/git/pybrat/examples/example.py) of parsing [BioNLP-ST\_2011](https://github.com/nlplab/brat/tree/master/example-data/corpora/BioNLP-ST_2011) data:
 
 ``` python
 # -*- coding: utf-8 -*-
@@ -83,8 +79,4 @@ print(examples[0])
 
 ## Formatting Code
 
-To ensure the codebase complies with a style guide, please use
-[flake8](https://github.com/PyCQA/flake8),
-[black](https://github.com/psf/black) and
-[isort](https://github.com/PyCQA/isort) tools to format and check
-codebase for compliance with PEP8.
+To ensure the codebase complies with a style guide, please use [flake8](https://github.com/PyCQA/flake8), [black](https://github.com/psf/black) and [isort](https://github.com/PyCQA/isort) tools to format and check codebase for compliance with PEP8.
