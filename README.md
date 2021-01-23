@@ -11,7 +11,7 @@
 git clone https://github.com/nlplab/brat.git
 ```
 
-## Use `pybrat` to parse annotated data
+## Parse annotated data
 
 ``` python
 # -*- coding: utf-8 -*-
