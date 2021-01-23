@@ -3,7 +3,7 @@
 import dataclasses
 import itertools
 import re
-from typing import Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Set, Union
 
 from pybrat.utils import iter_file_groups
 
@@ -28,8 +28,8 @@ class Relation(object):
 @dataclasses.dataclass(frozen=True)
 class Example(object):
     text: Union[str, Iterable[str]]
-    entities: dataclasses.field(default_factory=set)
-    relations: dataclasses.field(default_factory=set)
+    entities: Set[Entity] = dataclasses.field(default_factory=set)
+    relations: Set[Relation] = dataclasses.field(default_factory=set)
     id: Optional[str] = None
 
 
