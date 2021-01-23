@@ -250,8 +250,8 @@ class BratParser(object):
         event_index = dict(zip(sorted_event_ids, range(len(sorted_event_ids))))
 
         events = dict()
-        arguments = []
         for match in sorted(event_matches, key=lambda x: event_index[x["id"]]):
+            arguments = []
             trigger = entities.get(match["trigger"])
             if not trigger:
                 self._raise(KeyError(f"Missing event trigger: {trigger}"))
