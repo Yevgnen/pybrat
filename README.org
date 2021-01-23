@@ -17,3 +17,7 @@ git clone https://github.com/nlplab/brat.git
 ** Parse annotated data
 
 #+include: examples/example.py src python
+
+# Local Variables:
+# eval: (add-hook 'before-save-hook (lambda nil (org-pandoc-export-to-gfm)) nil t)
+# End:
