@@ -10,11 +10,20 @@ from pybrat.utils import iter_file_groups
 
 
 @dataclasses.dataclass(frozen=True)
+class Reference(object):
+    rid: str
+    eid: str
+    entry: str
+    id: Optional[str] = None
+
+
+@dataclasses.dataclass(frozen=True)
 class Entity(object):
     mention: str
     type: str
     start: int
     end: int
+    references: FrozenSet[Reference] = dataclasses.field(default_factory=frozenset)
     id: Optional[str] = None
 
 
@@ -49,7 +58,7 @@ class Example(object):
 
 
 class BratParser(object):
-    def __init__(self, ignore_types: str = "AMN", error: str = "raise"):
+    def __init__(self, ignore_types: str = "AM", error: str = "raise"):
         # TODO Remove `ignore_types` and add full support.
         self.ignore_types = ignore_types
         self.error = error
@@ -134,12 +143,27 @@ class BratParser(object):
             ],
         }
 
+    def _parse_reference(self, line):
+        regex = re.compile(
+            r"""(?P<id>N\d+)
+                \tReference
+                \ (?P<entity>T\d+)
+                \ (?P<rid>[^:]+):(?P<eid>[^\t]+)
+                \t(?P<entry>.+)""",
+            re.X,
+        )
+        match = re.match(regex, line)
+        if not match:
+            self._raise_invalid_line_error(line)
+
+        return match
+
     def _parse_ann(self, ann):
         # Parser entities and store required data for parsing relations
         # and events.
-        entities = {}
-        relation_matches = []
-        event_matches = []
+        entity_matches, relation_matches, event_matches = [], [], []
+        references = collections.defaultdict(list)
+
         with open(ann, mode="r") as f:
             for line in f:
                 line = line.rstrip()
@@ -148,13 +172,7 @@ class BratParser(object):
 
                 if line.startswith("T"):
                     match = self._parse_entity(line)
-                    entities[match["id"]] = Entity(
-                        mention=match["mention"],
-                        type=match["type"],
-                        start=int(match["start"]),
-                        end=int(match["end"]),
-                        id=match["id"],
-                    )
+                    entity_matches += [match]
                 elif line.startswith("R"):
                     match = self._parse_relation(line)
                     relation_matches += [match]
@@ -164,9 +182,32 @@ class BratParser(object):
                 elif line.startswith("E"):
                     match = self._parse_event(line)
                     event_matches += [match]
+                elif line.startswith("N"):
+                    match = self._parse_reference(line)
+                    references[match["entity"]] += [
+                        Reference(
+                            rid=match["rid"],
+                            eid=match["eid"],
+                            entry=match["entry"],
+                            id=match["id"],
+                        )
+                    ]
                 else:
                     if line[0] not in self.ignore_types:
                         self._raise_invalid_line_error(line)
+
+        # Parser entities.
+        entities = {
+            match["id"]: Entity(
+                mention=match["mention"],
+                type=match["type"],
+                start=int(match["start"]),
+                end=int(match["end"]),
+                references=frozenset(references[match["id"]]),
+                id=match["id"],
+            )
+            for match in entity_matches
+        }
 
         # Parse relations.
         relations = set()
