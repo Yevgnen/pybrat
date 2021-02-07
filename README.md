@@ -38,7 +38,7 @@ git clone https://github.com/nlplab/brat.git
 
 ## Parse annotated data
 
-Below is an [example](/Users/Maximin/git/pybrat/examples/example.py) of parsing [BioNLP-ST\_2011](https://github.com/nlplab/brat/tree/master/example-data/corpora/BioNLP-ST_2011) data:
+Below is an [example](examples/example.py) of parsing [BioNLP-ST\_2011](https://github.com/nlplab/brat/tree/master/example-data/corpora/BioNLP-ST_2011) data:
 
 ``` python
 # -*- coding: utf-8 -*-
