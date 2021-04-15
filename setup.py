@@ -18,7 +18,7 @@ def find_version(*paths):
         return match.group("ver")
 
 
-VERSION = find_version("texi", "__init__.py")
+VERSION = find_version("pybrat", "__init__.py")
 
 
 setup(
