@@ -158,46 +158,10 @@ class BratParser(object):
 
         return match
 
-    def _parse_ann(self, ann):
-        # Parser entities and store required data for parsing relations
-        # and events.
-        entity_matches, relation_matches, event_matches = [], [], []
-        references = collections.defaultdict(list)
-
-        with open(ann, mode="r") as f:
-            for line in f:
-                line = line.rstrip()
-                if not line or line.startswith("#"):
-                    continue
-
-                if line.startswith("T"):
-                    if match := self._parse_entity(line):
-                        entity_matches += [match]
-                elif line.startswith("R"):
-                    if match := self._parse_relation(line):
-                        relation_matches += [match]
-                elif line.startswith("*"):
-                    if match := self._parse_equivalence_relations(line):
-                        relation_matches += list(match)
-                elif line.startswith("E"):
-                    if match := self._parse_event(line):
-                        event_matches += [match]
-                elif line.startswith("N"):
-                    if match := self._parse_reference(line):
-                        references[match["entity"]] += [
-                            Reference(
-                                rid=match["rid"],
-                                eid=match["eid"],
-                                entry=match["entry"],
-                                id=match["id"],
-                            )
-                        ]
-                else:
-                    if line[0] not in self.ignore_types:
-                        self._raise_invalid_line_error(line)
-
-        # Parser entities.
-        entities = {
+    def _format_entities(
+        self, entity_matches, references
+    ):  # pylint: disable=no-self-use
+        return {
             match["id"]: Entity(
                 mention=match["mention"],
                 type=match["type"],
@@ -209,7 +173,7 @@ class BratParser(object):
             for match in entity_matches
         }
 
-        # Parse relations.
+    def _format_relations(self, relation_matches, entities):
         relations = []
         for rel in relation_matches:
             arg1_id, arg2_id = rel["arg1"], rel["arg2"]
@@ -226,7 +190,9 @@ class BratParser(object):
                 Relation(type=rel["type"], arg1=arg1, arg2=arg2, id=rel["id"])
             ]
 
-        # Parser events.
+        return relations
+
+    def _format_events(self, event_matches, entities):
         adjacent = {
             e["id"]: [x["id"] for x in e["args"] if x["type"] == "event"]
             for e in event_matches
@@ -272,6 +238,55 @@ class BratParser(object):
                 type=match["type"], trigger=trigger, arguments=arguments, id=match["id"]
             )
             events[event.id] = event
+
+        return events
+
+    def _parse_ann(self, ann):
+        # Parser entities and store required data for parsing relations
+        # and events.
+        entity_matches, relation_matches, event_matches = [], [], []
+        references = collections.defaultdict(list)
+
+        with open(ann, mode="r") as f:
+            for line in f:
+                line = line.rstrip()
+                if not line or line.startswith("#"):
+                    continue
+
+                if line.startswith("T"):
+                    if match := self._parse_entity(line):
+                        entity_matches += [match]
+                elif line.startswith("R"):
+                    if match := self._parse_relation(line):
+                        relation_matches += [match]
+                elif line.startswith("*"):
+                    if match := self._parse_equivalence_relations(line):
+                        relation_matches += list(match)
+                elif line.startswith("E"):
+                    if match := self._parse_event(line):
+                        event_matches += [match]
+                elif line.startswith("N"):
+                    if match := self._parse_reference(line):
+                        references[match["entity"]] += [
+                            Reference(
+                                rid=match["rid"],
+                                eid=match["eid"],
+                                entry=match["entry"],
+                                id=match["id"],
+                            )
+                        ]
+                else:
+                    if line[0] not in self.ignore_types:
+                        self._raise_invalid_line_error(line)
+
+        # Format entities.
+        entities = self._format_entities(entity_matches, references)
+
+        # Format relations.
+        relations = self._format_relations(relation_matches, entities)
+
+        # Format events.
+        events = self._format_events(event_matches, entities)
 
         return {
             "entities": list(entities.values()),
