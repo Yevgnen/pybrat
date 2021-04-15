@@ -7,6 +7,7 @@
 -   [Usages](#usages)
     -   [Fetch sample data](#fetch-sample-data)
     -   [Parse annotated data](#parse-annotated-data)
+    -   [Helper scripts](#helper-scripts)
 -   [Contribution](#contribution)
     -   [Formatting Code](#formatting-code)
 
@@ -40,7 +41,7 @@ git clone https://github.com/nlplab/brat.git
 
 Below is an [example](examples/example.py) of parsing [BioNLP-ST\_2011](https://github.com/nlplab/brat/tree/master/example-data/corpora/BioNLP-ST_2011) data:
 
-``` python
+``` Python
 # -*- coding: utf-8 -*-
 
 import dataclasses
@@ -73,6 +74,14 @@ assert all(isinstance(e, dict) for x in examples for e in x["relations"])
 assert all(isinstance(e, dict) for x in examples for e in x["events"])
 
 print(examples[0])
+```
+
+## Helper scripts
+
+The `pybrat-convert` script can be used to convert Brat examples into JSON files.
+
+``` bash
+pybrat-convert -i brat/example-data/corpora/BioNLP-ST_2011 -o ./output --error ignore
 ```
 
 # Contribution
