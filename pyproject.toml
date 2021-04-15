@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pybrat"
-version = "0.1.0"
+version = "0.1.1"
 description = "Parser for brat rapid annotation tool (Brat)"
 authors = ["Yevgnen Koh <wherejoystarts@gmail.com>"]
 
