@@ -58,11 +58,25 @@ class Example(object):
 
 
 class BratParser(object):
-    def __init__(self, ignore_types: str = "AM", error: str = "raise"):
-        # TODO Remove `ignore_types` and add full support.
+    def __init__(
+        self, ignore_types: Optional[Iterable[str]] = None, error: str = "raise"
+    ):
+        self.types = {"T", "R", "*", "E", "N", "AM"}
+
+        if ignore_types:
+            unknown_types = set(ignore_types) - self.types
+            if unknown_types:
+                raise ValueError(f"Unknown types: {unknown_types!r}")
+            ignore_types = re.compile(r"|".join(re.escape(x) for x in ignore_types))
         self.ignore_types = ignore_types
         self.error = error
         self.exts = {".ann", ".txt"}
+
+    def _should_ignore_line(self, line):
+        if self.ignore_types:
+            return re.match(self.ignore_types, line)
+
+        return False
 
     def _raise(self, error):
         if self.error == "raise":
@@ -250,7 +264,7 @@ class BratParser(object):
         with open(ann, mode="r") as f:
             for line in f:
                 line = line.rstrip()
-                if not line or line.startswith("#"):
+                if not line or line.startswith("#") or self._should_ignore_line(line):
                     continue
 
                 if line.startswith("T"):
@@ -275,9 +289,8 @@ class BratParser(object):
                                 id=match["id"],
                             )
                         ]
-                else:
-                    if line[0] not in self.ignore_types:
-                        self._raise_invalid_line_error(line)
+                elif line.startswith("AM"):
+                    raise NotImplementedError()
 
         # Format entities.
         entities = self._format_entities(entity_matches, references)
