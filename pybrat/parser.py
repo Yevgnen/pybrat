@@ -69,7 +69,12 @@ class BratParser(object):
                 raise ValueError(f"Unknown types: {unknown_types!r}")
             ignore_types = re.compile(r"|".join(re.escape(x) for x in ignore_types))
         self.ignore_types = ignore_types
+
+        errors = {"raise", "ignore"}
+        if error not in errors:
+            raise ValueError(f"`error` should be in {errors!r}")
         self.error = error
+
         self.exts = {".ann", ".txt"}
 
     def _should_ignore_line(self, line):
