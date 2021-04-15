@@ -58,6 +58,16 @@ class Example(object):
 
 
 class BratParser(object):
+    """Parser for brat rapid annotation tool (Brat).
+
+    Args:
+        ignore_types (Optional[Iterable[str]]): Optional annotation
+            types to ignore, should be in {"T", "R", "*", "E", "N", "AM"}.
+            (default: None)
+        error (str): Error handling, should be in {"raise", "ignore"}.
+            (default: "raise")
+    """
+
     def __init__(
         self, ignore_types: Optional[Iterable[str]] = None, error: str = "raise"
     ):
@@ -317,6 +327,15 @@ class BratParser(object):
             return f.read()
 
     def parse(self, dirname: str) -> List[Example]:
+        """Parse examples in given directory.
+
+        Args:
+            dirname (str): Directory containing brat examples.
+
+        Returns:
+            examples (List[Example]): Parsed examples.
+        """
+
         examples = []
         for key, (ann, txt) in iter_file_groups(
             dirname,
