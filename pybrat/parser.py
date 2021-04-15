@@ -171,27 +171,27 @@ class BratParser(object):
                     continue
 
                 if line.startswith("T"):
-                    match = self._parse_entity(line)
-                    entity_matches += [match]
+                    if match := self._parse_entity(line):
+                        entity_matches += [match]
                 elif line.startswith("R"):
-                    match = self._parse_relation(line)
-                    relation_matches += [match]
+                    if match := self._parse_relation(line):
+                        relation_matches += [match]
                 elif line.startswith("*"):
-                    match = self._parse_equivalence_relations(line)
-                    relation_matches += list(match)
+                    if match := self._parse_equivalence_relations(line):
+                        relation_matches += list(match)
                 elif line.startswith("E"):
-                    match = self._parse_event(line)
-                    event_matches += [match]
+                    if match := self._parse_event(line):
+                        event_matches += [match]
                 elif line.startswith("N"):
-                    match = self._parse_reference(line)
-                    references[match["entity"]] += [
-                        Reference(
-                            rid=match["rid"],
-                            eid=match["eid"],
-                            entry=match["entry"],
-                            id=match["id"],
-                        )
-                    ]
+                    if match := self._parse_reference(line):
+                        references[match["entity"]] += [
+                            Reference(
+                                rid=match["rid"],
+                                eid=match["eid"],
+                                entry=match["entry"],
+                                id=match["id"],
+                            )
+                        ]
                 else:
                     if line[0] not in self.ignore_types:
                         self._raise_invalid_line_error(line)
