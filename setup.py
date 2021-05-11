@@ -29,6 +29,9 @@ setup(
     author="Yevgnen Koh",
     author_email="wherejoystarts@gmail.com",
     packages=find_packages(exclude=("tests", "tests.*")),
+    package_data={
+        "pybrat": ["py.typed"],
+    },
     include_package_data=True,
     install_requires=[],
     test_suite="tests",
