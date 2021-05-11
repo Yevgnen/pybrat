@@ -5,7 +5,7 @@ import dataclasses
 import itertools
 import re
 from typing import Iterable, List, Optional, Union
-
+import os
 from pybrat.utils import iter_file_groups
 
 
@@ -326,11 +326,12 @@ class BratParser(object):
         with open(txt, mode="r") as f:
             return f.read()
 
-    def parse(self, dirname: str) -> List[Example]:
+    def parse(self, dirname: Union[str, bytes, os.PathLike]) -> List[Example]:
         """Parse examples in given directory.
 
         Args:
-            dirname (str): Directory containing brat examples.
+            dirname (Union[str, bytes, os.PathLike]): Directory
+                containing brat examples.
 
         Returns:
             examples (List[Example]): Parsed examples.
@@ -347,6 +348,6 @@ class BratParser(object):
             ann = self._parse_ann(ann)
             examples += [Example(text=text, **ann, id=key)]
 
-        examples.sort(key=lambda x: x.id)
+        examples.sort(key=lambda x: x.id if x.id is not None else "")
 
         return examples
