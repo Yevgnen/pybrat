@@ -12,9 +12,8 @@ from typing import Union
 def iter_file_groups(
     dirname: Union[str, bytes, os.PathLike],
     exts: Union[str, Iterable[str]],
-    with_key: bool = False,
     missing: str = "error",
-) -> Union[Iterable[tuple[str, list[str]]], Iterable[list[str]]]:
+) -> Iterable[tuple[str, list[str]]]:
     def _format_ext(ext):
         return f'.{ext.lstrip(".")}'
 
@@ -46,4 +45,4 @@ def iter_file_groups(
         if len(sorted_group) != num_exts and missing == "error":
             raise RuntimeError(f"Missing files: {key!s}.{exts}")
 
-        yield (key, sorted_group) if with_key else sorted_group
+        yield key, sorted_group

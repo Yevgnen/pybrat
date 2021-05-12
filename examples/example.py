@@ -5,7 +5,7 @@ import dataclasses
 from pybrat.parser import BratParser, Entity, Event, Example, Relation
 
 # Initialize a parser.
-brat = BratParser()
+brat = BratParser(error="ignore")
 examples = brat.parse("brat/example-data/corpora/BioNLP-ST_2011")
 
 # The praser returns dataclasses.

@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import collections
 import dataclasses
 import itertools
 import os
 import re
-from typing import Iterable, List, Optional, Union
+from collections.abc import Iterable
+from typing import Optional, Union
 
 from pybrat.utils import iter_file_groups
 
@@ -24,7 +27,7 @@ class Entity(object):
     type: str
     start: int
     end: int
-    references: List[Reference] = dataclasses.field(default_factory=list)
+    references: list[Reference] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
 
 
@@ -45,16 +48,16 @@ class Event(object):
 
     type: str
     trigger: Entity
-    arguments: List[Argument] = dataclasses.field(default_factory=list)
+    arguments: list[Argument] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
 
 
 @dataclasses.dataclass
 class Example(object):
     text: Union[str, Iterable[str]]
-    entities: List[Entity] = dataclasses.field(default_factory=list)
-    relations: List[Relation] = dataclasses.field(default_factory=list)
-    events: List[Event] = dataclasses.field(default_factory=list)
+    entities: list[Entity] = dataclasses.field(default_factory=list)
+    relations: list[Relation] = dataclasses.field(default_factory=list)
+    events: list[Event] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
 
 
@@ -74,12 +77,14 @@ class BratParser(object):
     ):
         self.types = {"T", "R", "*", "E", "N", "AM"}
 
+        self.re_ignore_types: Optional[re.Pattern] = None
         if ignore_types:
             unknown_types = set(ignore_types) - self.types
             if unknown_types:
                 raise ValueError(f"Unknown types: {unknown_types!r}")
-            ignore_types = re.compile(r"|".join(re.escape(x) for x in ignore_types))
-        self.ignore_types = ignore_types
+            self.re_ignore_types = re.compile(
+                r"|".join(re.escape(x) for x in ignore_types)
+            )
 
         errors = {"raise", "ignore"}
         if error not in errors:
@@ -89,8 +94,8 @@ class BratParser(object):
         self.exts = {".ann", ".txt"}
 
     def _should_ignore_line(self, line):
-        if self.ignore_types:
-            return re.match(self.ignore_types, line)
+        if self.re_ignore_types:
+            return re.match(self.re_ignore_types, line)
 
         return False
 
@@ -279,7 +284,7 @@ class BratParser(object):
                 self._raise(
                     RuntimeError(
                         "Detected identical span for"
-                        f" different entity id: [{id_}, {entity.id}]"
+                        f" different entities: [{id_}, {entity.id}]"
                     )
                 )
 
@@ -340,7 +345,7 @@ class BratParser(object):
         with open(txt, mode="r") as f:
             return f.read()
 
-    def parse(self, dirname: Union[str, bytes, os.PathLike]) -> List[Example]:
+    def parse(self, dirname: Union[str, bytes, os.PathLike]) -> list[Example]:
         """Parse examples in given directory.
 
         Args:
@@ -348,19 +353,21 @@ class BratParser(object):
                 containing brat examples.
 
         Returns:
-            examples (List[Example]): Parsed examples.
+            examples (list[Example]): Parsed examples.
         """
 
         examples = []
-        for key, (ann, txt) in iter_file_groups(
+
+        file_groups = iter_file_groups(
             dirname,
             self.exts,
-            with_key=True,
             missing="error" if self.error == "raise" else "ignore",
-        ):
-            text = self._parse_text(txt)
-            ann = self._parse_ann(ann)
-            examples += [Example(text=text, **ann, id=key)]
+        )
+
+        for key, (ann_file, txt_file) in file_groups:
+            txt = self._parse_text(txt_file)
+            ann = self._parse_ann(ann_file)
+            examples += [Example(text=txt, **ann, id=key)]
 
         examples.sort(key=lambda x: x.id if x.id is not None else "")
 
