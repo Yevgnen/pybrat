@@ -3,9 +3,10 @@
 import collections
 import dataclasses
 import itertools
+import os
 import re
 from typing import Iterable, List, Optional, Union
-import os
+
 from pybrat.utils import iter_file_groups
 
 
@@ -270,6 +271,18 @@ class BratParser(object):
 
         return events
 
+    def _check_entities(self, entities):  # pylint: disable=no-self-use
+        pool = {}
+        for entity in entities:
+            id_ = pool.setdefault((entity.start, entity.end), entity.id)
+            if id_ != entity.id:
+                self._raise(
+                    RuntimeError(
+                        "Detected identical span for"
+                        f" different entity id: [{id_}, {entity.id}]"
+                    )
+                )
+
     def _parse_ann(self, ann):
         # Parser entities and store required data for parsing relations
         # and events.
@@ -309,6 +322,7 @@ class BratParser(object):
 
         # Format entities.
         entities = self._format_entities(entity_matches, references)
+        self._check_entities(entities.values())
 
         # Format relations.
         relations = self._format_relations(relation_matches, entities)
