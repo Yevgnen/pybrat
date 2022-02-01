@@ -288,7 +288,7 @@ class BratParser(object):
                     )
                 )
 
-    def _parse_ann(self, ann):
+    def _parse_ann(self, ann, encoding):
         # Parser entities and store required data for parsing relations
         # and events.
         entity_matches, relation_matches, event_matches = [], [], []
@@ -341,16 +341,20 @@ class BratParser(object):
             "events": list(events.values()),
         }
 
-    def _parse_text(self, txt, encoding='utf8'):  # pylint: disable=no-self-use
-        with open(txt, mode="r", encoding=encoding) as f:
+    def _parse_text(self, txt, encoding):  # pylint: disable=no-self-use
+        with open(txt, mode="r") as f:
             return f.read()
 
-    def parse(self, dirname: Union[str, bytes, os.PathLike]) -> list[Example]:
+    def parse(
+        self, dirname: Union[str, bytes, os.PathLike], encoding: str = "utf-8"
+    ) -> list[Example]:
         """Parse examples in given directory.
 
         Args:
             dirname (Union[str, bytes, os.PathLike]): Directory
                 containing brat examples.
+            encoding (str): Encoding for reading text files and
+                ann files
 
         Returns:
             examples (list[Example]): Parsed examples.
@@ -365,8 +369,8 @@ class BratParser(object):
         )
 
         for key, (ann_file, txt_file) in file_groups:
-            txt = self._parse_text(txt_file)
-            ann = self._parse_ann(ann_file)
+            txt = self._parse_text(txt_file, encoding=encoding)
+            ann = self._parse_ann(ann_file, encoding=encoding)
             examples += [Example(text=txt, **ann, id=key)]
 
         examples.sort(key=lambda x: x.id if x.id is not None else "")
