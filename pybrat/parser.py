@@ -341,8 +341,8 @@ class BratParser(object):
             "events": list(events.values()),
         }
 
-    def _parse_text(self, txt):  # pylint: disable=no-self-use
-        with open(txt, mode="r") as f:
+    def _parse_text(self, txt, encoding='utf8'):  # pylint: disable=no-self-use
+        with open(txt, mode="r", encoding=encoding) as f:
             return f.read()
 
     def parse(self, dirname: Union[str, bytes, os.PathLike]) -> list[Example]:
