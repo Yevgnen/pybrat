@@ -342,7 +342,7 @@ class BratParser(object):
         }
 
     def _parse_text(self, txt, encoding):  # pylint: disable=no-self-use
-        with open(txt, mode="r") as f:
+        with open(txt, mode="r", encoding=encoding) as f:
             return f.read()
 
     def parse(
