@@ -22,13 +22,35 @@ class Reference(object):
 
 
 @dataclasses.dataclass
+class Span(object):
+    start: int
+    end: int
+
+    def __hash__(self):
+        return hash((self.start, self.end))
+
+
+@dataclasses.dataclass
 class Entity(object):
     mention: str
     type: str
-    start: int
-    end: int
+    spans: list[Span]
     references: list[Reference] = dataclasses.field(default_factory=list)
     id: Optional[str] = None
+
+    @property
+    def start(self):
+        if len(self.spans) == 1:
+            return self.spans[0].start
+
+        raise RuntimeError("`start` property only work for continuous enitty")
+
+    @property
+    def end(self):
+        if len(self.spans) == 1:
+            return self.spans[0].end
+
+        raise RuntimeError("`end` property only work for continuous enitty")
 
 
 @dataclasses.dataclass
@@ -112,6 +134,7 @@ class BratParser(object):
                 \t(?P<type>[^ ]+)
                 \ (?P<start>\d+)
                 \ (?P<end>\d+)
+                (?P<optional_spans>(?:;\d+\ \d+)*)
                 \t(?P<mention>.+)""",
             re.X,
         )
@@ -196,17 +219,23 @@ class BratParser(object):
     def _format_entities(
         self, entity_matches, references
     ):  # pylint: disable=no-self-use
-        return {
-            match["id"]: Entity(
+        def _format_entity(match):
+            spans = [Span(start=int(match["start"]), end=int(match["end"]))]
+            if match["optional_spans"]:
+                spans += [
+                    Span(*map(int, splits.split(" ")))
+                    for splits in filter(None, match["optional_spans"].split(";"))
+                ]
+
+            return Entity(
                 mention=match["mention"],
                 type=match["type"],
-                start=int(match["start"]),
-                end=int(match["end"]),
+                spans=spans,
                 references=references[match["id"]],
                 id=match["id"],
             )
-            for match in entity_matches
-        }
+
+        return {match["id"]: _format_entity(match) for match in entity_matches}
 
     def _format_relations(self, relation_matches, entities):
         relations = []
@@ -279,7 +308,7 @@ class BratParser(object):
     def _check_entities(self, entities):  # pylint: disable=no-self-use
         pool = {}
         for entity in entities:
-            id_ = pool.setdefault((entity.start, entity.end), entity.id)
+            id_ = pool.setdefault(tuple(entity.spans), entity.id)
             if id_ != entity.id:
                 self._raise(
                     RuntimeError(
