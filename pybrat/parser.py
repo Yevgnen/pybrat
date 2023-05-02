@@ -8,7 +8,7 @@ import itertools
 import os
 import re
 from collections.abc import Iterable
-from typing import Optional, Union, Callable
+from typing import Callable, Optional, Union
 
 from pybrat.utils import iter_file_groups
 
@@ -373,11 +373,14 @@ class BratParser(object):
             "events": list(events.values()),
         }
 
-    def _parse_text(self, txt, encoding, preprocess_function):  # pylint: disable=no-self-use
+    def _parse_text(
+        self, txt, encoding, preprocess_function
+    ):  # pylint: disable=no-self-use
         with open(txt, mode="r", encoding=encoding) as f:
             text = f.read()
             if preprocess_function is not None:
                 text = preprocess_function(text)
+
             return text
 
     def parse(
@@ -385,7 +388,7 @@ class BratParser(object):
         dirname: Union[str, bytes, os.PathLike],
         encoding: str = "utf-8",
         text_preprocess_function: Optional[Callable[[str], str]] = None,
-        ann_preprocess_function: Optional[Callable[[str], str]] = None
+        ann_preprocess_function: Optional[Callable[[str], str]] = None,
     ) -> list[Example]:
         """Parse examples in given directory.
 
@@ -394,8 +397,10 @@ class BratParser(object):
                 containing brat examples.
             encoding (str): Encoding for reading text files and
                 ann files
-            text_preprocess_function (Optional[Callable[[str], str]]): Function for text pre-processing
-            ann_preprocess_function (Optional[Callable[[str], str]]): Function for annotation pre-processing
+            text_preprocess_function (Optional[Callable[[str], str]]):
+                Function for text pre-processing
+            ann_preprocess_function (Optional[Callable[[str], str]]):
+                Function for annotation pre-processing
 
         Returns:
             examples (list[Example]): Parsed examples.
@@ -410,8 +415,14 @@ class BratParser(object):
         )
 
         for key, (ann_file, txt_file) in file_groups:
-            txt = self._parse_text(txt_file, encoding=encoding, preprocess_function=text_preprocess_function)
-            ann = self._parse_ann(ann_file, encoding=encoding, preprocess_function=ann_preprocess_function)
+            txt = self._parse_text(
+                txt_file,
+                encoding=encoding,
+                preprocess_function=text_preprocess_function,
+            )
+            ann = self._parse_ann(
+                ann_file, encoding=encoding, preprocess_function=ann_preprocess_function
+            )
             examples += [Example(text=txt, **ann, id=key)]
 
         examples.sort(key=lambda x: x.id if x.id is not None else "")
