@@ -8,7 +8,7 @@ import itertools
 import os
 import re
 from collections.abc import Iterable
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 
 from pybrat.utils import iter_file_groups
 
@@ -317,7 +317,7 @@ class BratParser(object):
                     )
                 )
 
-    def _parse_ann(self, ann, encoding, spaces_pattern):
+    def _parse_ann(self, ann, encoding, preprocess_function):
         # Parser entities and store required data for parsing relations
         # and events.
         entity_matches, relation_matches, event_matches = [], [], []
@@ -325,8 +325,8 @@ class BratParser(object):
 
         with open(ann, mode="r", encoding=encoding) as f:
             for line in f:
-                if spaces_pattern is not None:
-                    line = re.sub(spaces_pattern, ' ', line)
+                if preprocess_function is not None:
+                    line = preprocess_function(line)
 
                 line = line.rstrip()
                 if not line or line.startswith("#") or self._should_ignore_line(line):
@@ -373,15 +373,19 @@ class BratParser(object):
             "events": list(events.values()),
         }
 
-    def _parse_text(self, txt, encoding, spaces_pattern):  # pylint: disable=no-self-use
+    def _parse_text(self, txt, encoding, preprocess_function):  # pylint: disable=no-self-use
         with open(txt, mode="r", encoding=encoding) as f:
             text = f.read()
-            if spaces_pattern is not None:
-                text = re.sub(spaces_pattern, ' ', text)
+            if preprocess_function is not None:
+                text = preprocess_function(text)
             return text
 
     def parse(
-        self, dirname: Union[str, bytes, os.PathLike], encoding: str = "utf-8", spaces_pattern: Optional[re.Pattern] = None
+        self,
+        dirname: Union[str, bytes, os.PathLike],
+        encoding: str = "utf-8",
+        text_preprocess_function: Optional[Callable[[str], str]] = None,
+        ann_preprocess_function: Optional[Callable[[str], str]] = None
     ) -> list[Example]:
         """Parse examples in given directory.
 
@@ -390,7 +394,8 @@ class BratParser(object):
                 containing brat examples.
             encoding (str): Encoding for reading text files and
                 ann files
-            spaces_pattern (Optional[re.Pattern]): Pattern of spaces to be replaced with a single space
+            text_preprocess_function (Optional[Callable[[str], str]]): Function for text pre-processing
+            ann_preprocess_function (Optional[Callable[[str], str]]): Function for annotation pre-processing
 
         Returns:
             examples (list[Example]): Parsed examples.
@@ -405,8 +410,8 @@ class BratParser(object):
         )
 
         for key, (ann_file, txt_file) in file_groups:
-            txt = self._parse_text(txt_file, encoding=encoding, spaces_pattern=spaces_pattern)
-            ann = self._parse_ann(ann_file, encoding=encoding, spaces_pattern=spaces_pattern)
+            txt = self._parse_text(txt_file, encoding=encoding, preprocess_function=text_preprocess_function)
+            ann = self._parse_ann(ann_file, encoding=encoding, preprocess_function=ann_preprocess_function)
             examples += [Example(text=txt, **ann, id=key)]
 
         examples.sort(key=lambda x: x.id if x.id is not None else "")
