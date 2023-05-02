@@ -398,9 +398,11 @@ class BratParser(object):
             encoding (str): Encoding for reading text files and
                 ann files
             text_preprocess_function (Optional[Callable[[str], str]]):
-                Function for text pre-processing
+                Function for text pre-processing, will be call on the
+                whole text file before parsing
             ann_preprocess_function (Optional[Callable[[str], str]]):
-                Function for annotation pre-processing
+                Function for annotation pre-processing, will be call on
+                each annotation line before parsing
 
         Returns:
             examples (list[Example]): Parsed examples.
