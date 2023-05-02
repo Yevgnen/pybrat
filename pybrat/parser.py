@@ -8,7 +8,7 @@ import itertools
 import os
 import re
 from collections.abc import Iterable
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 from pybrat.utils import iter_file_groups
 
@@ -317,14 +317,17 @@ class BratParser(object):
                     )
                 )
 
-    def _parse_ann(self, ann, encoding):
+    def _parse_ann(self, ann, encoding, preprocess_function):
         # Parser entities and store required data for parsing relations
         # and events.
         entity_matches, relation_matches, event_matches = [], [], []
         references = collections.defaultdict(list)
 
-        with open(ann, mode="r") as f:
+        with open(ann, mode="r", encoding=encoding) as f:
             for line in f:
+                if preprocess_function is not None:
+                    line = preprocess_function(line)
+
                 line = line.rstrip()
                 if not line or line.startswith("#") or self._should_ignore_line(line):
                     continue
@@ -370,12 +373,22 @@ class BratParser(object):
             "events": list(events.values()),
         }
 
-    def _parse_text(self, txt, encoding):  # pylint: disable=no-self-use
+    def _parse_text(
+        self, txt, encoding, preprocess_function
+    ):  # pylint: disable=no-self-use
         with open(txt, mode="r", encoding=encoding) as f:
-            return f.read()
+            text = f.read()
+            if preprocess_function is not None:
+                text = preprocess_function(text)
+
+            return text
 
     def parse(
-        self, dirname: Union[str, bytes, os.PathLike], encoding: str = "utf-8"
+        self,
+        dirname: Union[str, bytes, os.PathLike],
+        encoding: str = "utf-8",
+        text_preprocess_function: Optional[Callable[[str], str]] = None,
+        ann_preprocess_function: Optional[Callable[[str], str]] = None,
     ) -> list[Example]:
         """Parse examples in given directory.
 
@@ -384,6 +397,12 @@ class BratParser(object):
                 containing brat examples.
             encoding (str): Encoding for reading text files and
                 ann files
+            text_preprocess_function (Optional[Callable[[str], str]]):
+                Function for text pre-processing, will be call on the
+                whole text file before parsing
+            ann_preprocess_function (Optional[Callable[[str], str]]):
+                Function for annotation pre-processing, will be call on
+                each annotation line before parsing
 
         Returns:
             examples (list[Example]): Parsed examples.
@@ -398,8 +417,14 @@ class BratParser(object):
         )
 
         for key, (ann_file, txt_file) in file_groups:
-            txt = self._parse_text(txt_file, encoding=encoding)
-            ann = self._parse_ann(ann_file, encoding=encoding)
+            txt = self._parse_text(
+                txt_file,
+                encoding=encoding,
+                preprocess_function=text_preprocess_function,
+            )
+            ann = self._parse_ann(
+                ann_file, encoding=encoding, preprocess_function=ann_preprocess_function
+            )
             examples += [Example(text=txt, **ann, id=key)]
 
         examples.sort(key=lambda x: x.id if x.id is not None else "")
